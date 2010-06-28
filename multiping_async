@@ -21,7 +21,7 @@ multiping_async - Like the multiping plugin but runs asynchronously
 The following environment variables are used:
 
     host - Whitespace-seperated list of hosts to ping
-    ping - How many times to ping the hosts, 10 by default
+    ping - How many times to ping the hosts, 3 by default
 
 Configuration example:
 
@@ -29,7 +29,7 @@ Configuration example:
     user root
     env.host www.example.org mail.example.org
     # Optional, how many times to ping each host, we'll report the average
-    #env.times 10
+    #env.times 3
 
 =head1 DESCRIPTION
 
@@ -72,7 +72,7 @@ has hosts => (
 has times => (
     isa           => 'Int',
     is            => 'ro',
-    default       => $ENV{times} // 10,
+    default       => $ENV{times} // 3,
     documentation => "How many times we ping each host (ping -c)",
 );
 
