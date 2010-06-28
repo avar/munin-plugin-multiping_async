@@ -117,15 +117,14 @@ event stdout => sub {
         my $noslash = qr{[^/]+};
         when (m[^rtt min/avg/max/mdev = (?<min>$noslash)/(?<avg>$noslash)/(?<max>$noslash)/]) {
             $self->response->{ $context } = $+{avg};
-
-            # This is the last reply. Hack because STOP -> print_hosts
-            # doesn't work (poe already shutting down?)
-            if (keys(%{ $self->response }) == @{ $self->hosts }) {
-                $self->yield( 'print_hosts' );
-            }
         }
     }
 };
+
+sub STOP {
+    my ($self) = @_;
+    $self->print_hosts;
+}
 
 event print_config => sub {
     my ($self) = @_;
@@ -147,7 +146,7 @@ HOST
     }
 };
 
-event print_hosts => sub {
+sub print_hosts {
     my ($self) = @_;
 
     my $response = $self->response;
