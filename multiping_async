@@ -83,6 +83,14 @@ has should_config => (
     documentation => 'Spew out config section?',
 );
 
+has response => (
+    isa        => 'HashRef',
+    is         => 'ro',
+    auto_deref => 0,
+    default    => sub { +{} },
+    documentation => 'To store ping responses',
+);
+
 sub START {
     my ($self, $heap) = @_[0, HEAP];
 
@@ -108,7 +116,13 @@ event stdout => sub {
     given ($output) {
         my $noslash = qr{[^/]+};
         when (m[^rtt min/avg/max/mdev = (?<min>$noslash)/(?<avg>$noslash)/(?<max>$noslash)/]) {
-            $self->yield( print_host => $context => $+{avg} );
+            $self->response->{ $context } = $+{avg};
+
+            # This is the last reply. Hack because STOP -> print_hosts
+            # doesn't work (poe already shutting down?)
+            if (keys(%{ $self->response }) == @{ $self->hosts }) {
+                $self->yield( 'print_hosts' );
+            }
         }
     }
 };
@@ -133,13 +147,17 @@ HOST
     }
 };
 
-event print_host => sub {
-    my ($self, $context, $avg) = @_;
+event print_hosts => sub {
+    my ($self) = @_;
 
-    my $fieldname = $self->fieldname($context);
-    my $value = sprintf "%6.6f", $avg;
+    my $response = $self->response;
 
-    say "$fieldname.value $value";
+    for my $context (sort { $response->{$b} <=> $response->{$a} } keys %$response) {
+        my $fieldname = $self->fieldname($context);
+        my $value = sprintf "%6.6f", $response->{$context};
+
+        say "$fieldname.value $value";
+    }
 };
 
 sub fieldname {
