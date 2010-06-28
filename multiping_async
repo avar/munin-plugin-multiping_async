@@ -92,17 +92,15 @@ has response => (
 );
 
 sub START {
-    my ($self, $heap) = @_[0, HEAP];
+    my ($self) = @_;
 
     if ($self->should_config) {
         $self->yield( print_config => $self->hosts );
         return;
     }
 
-    $heap->{quickie} = POE::Quickie->new();
-
     for ($self->hosts) {
-        $heap->{quickie}->run(
+        POE::Quickie->new->run(
             Program     => [ 'ping', '-c', $self->times => $_ ],
             StdoutEvent => 'stdout',
             Context     => $_,
