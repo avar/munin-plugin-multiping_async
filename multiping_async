@@ -20,16 +20,16 @@ multiping_async - Like the multiping plugin but runs asynchronously
 
 The following environment variables are used:
 
-    host - Whitespace-seperated list of hosts to ping
-    ping - How many times to ping the hosts, 3 by default
+    host  - Whitespace-seperated list of hosts to ping
+    ping  - How many times to ping the hosts, 3 by default
+    title - The graph_title to use for the munin RRD graph
 
-Configuration example:
+Configuration example, ping all the Linode clusters: 
 
-    [multiping_async]
-    user root
-    env.host www.example.org mail.example.org
-    # Optional, how many times to ping each host, we'll report the average
-    #env.times 3
+    [multiping_async_linode]
+    # From http://www.linode.com/speedtest/
+    env.title Ping times to all the Linode clusters
+    env.host  london1.linode.com newark1.linode.com atlanta1.linode.com dallas1.linode.com fremont1.linode.com
 
 =head1 DESCRIPTION
 
@@ -60,6 +60,13 @@ This program is in the public domain.
  #%# family=manual
 
 =cut
+
+has graph_title => (
+    isa => 'Str',
+    is  => 'ro',
+    default => $ENV{title} // 'Ping times',
+    documentation => 'The munin graph_title',
+);
 
 has hosts => (
     isa        => 'ArrayRef',
@@ -126,9 +133,10 @@ sub STOP {
 
 sub print_config {
     my ($self) = @_;
+    my $title = $self->graph_title;
     my $times = $self->times;
     print <<GRAPH;
-graph_title Ping times
+graph_title $title
 graph_args --base 1000 -l 0
 graph_vlabel seconds
 graph_category network
