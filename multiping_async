@@ -95,7 +95,7 @@ sub START {
     my ($self) = @_;
 
     if ($self->should_config) {
-        $self->yield( print_config => $self->hosts );
+        $self->print_config;
         return;
     }
 
@@ -124,7 +124,7 @@ sub STOP {
     $self->print_hosts;
 }
 
-event print_config => sub {
+sub print_config {
     my ($self) = @_;
     my $times = $self->times;
     print <<GRAPH;
