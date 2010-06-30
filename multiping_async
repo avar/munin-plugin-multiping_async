@@ -115,6 +115,7 @@ sub START {
         POE::Quickie->new->run(
             Program     => [ 'ping', '-c', $self->times => $_ ],
             StdoutEvent => 'stdout',
+            ExitEvent   => 'exit',
             Context     => $_,
         );
     }
@@ -131,10 +132,22 @@ event stdout => sub {
     }
 };
 
-sub STOP {
-    my ($self) = @_;
-    $self->print_hosts;
-}
+event exit => sub {
+    my ($self, $code, $x, $context) = @_;
+
+    given ($code) {
+        when (0) {
+            die "Got no response from $context" unless exists $self->response->{ $context };
+            $self->yield( print_host => $context => $self->response->{ $context } );
+        }
+        default {
+            # Host down, probably
+            $self->yield( print_host => $context => 0 );
+        }
+    }
+
+    return;
+};
 
 sub print_config {
     my ($self) = @_;
@@ -157,17 +170,13 @@ HOST
     }
 };
 
-sub print_hosts {
-    my ($self) = @_;
+event print_host => sub {
+    my ($self, $context, $time) = @_;
 
-    my $response = $self->response;
+    my $fieldname = $self->fieldname($context);
+    my $value = sprintf "%6.6f", $time;
 
-    for my $context (sort { $response->{$b} <=> $response->{$a} } keys %$response) {
-        my $fieldname = $self->fieldname($context);
-        my $value = sprintf "%6.6f", $response->{$context};
-
-        say "$fieldname.value $value";
-    }
+    say "$fieldname.value $value";
 };
 
 sub fieldname {
