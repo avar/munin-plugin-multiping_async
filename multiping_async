@@ -22,7 +22,8 @@ multiping_async - Like the multiping plugin but runs asynchronously
 The following environment variables are used:
 
     host     - Whitespace-seperated list of hosts to ping
-    ping     - How many times to ping the hosts, 3 by default
+    times    - How many times to ping the hosts, 3 by default
+    timeout  - The ping timeout (ping -W), 1 by default
     title    - The graph_title to use for the munin RRD graph
     category - What category the graph should be in, network by default
 
@@ -92,6 +93,13 @@ has times => (
     documentation => "How many times we ping each host (ping -c)",
 );
 
+has timeout => (
+    isa           => 'Int',
+    is            => 'ro',
+    default       => $ENV{timeout} // 1,
+    documentation => "How long until ping timeouts (ping -W)",
+);
+
 has category => (
     isa           => 'Str',
     is            => 'ro',
@@ -133,7 +141,7 @@ sub START {
 
     for ($self->hosts) {
         POE::Quickie->new->run(
-            Program     => [ 'ping', '-c', $self->times => $_ ],
+            Program     => [ 'ping', '-c', $self->times, '-W', $self->timeout, => $_ ],
             StdoutEvent => 'stdout',
             ExitEvent   => 'exit',
             Context     => $_,
