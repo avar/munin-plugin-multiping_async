@@ -72,7 +72,10 @@ has hosts => (
     isa        => 'ArrayRef',
     is         => 'ro',
     auto_deref => 1,
-    default    => sub { [ split /\s+/, $ENV{host} ] },
+    default    => sub {
+        my $host = $ENV{host} // '';
+        return [ split /\s+/, $host ]
+    },
     documentation => "Hosts we're going to ping",
 );
 
@@ -100,6 +103,8 @@ has response => (
 
 sub START {
     my ($self) = @_;
+
+    die "You must supply some hosts" unless @{ $self->hosts } > 0;
 
     if ($self->should_config) {
         $self->print_config;
