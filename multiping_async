@@ -6,6 +6,7 @@ use MooseX::POE;
 use MooseX::POE::SweetArgs qw(event);
 use POE::Quickie;
 use Munin::Plugin;
+use Storable;
 use Digest;
 
 =head1 NAME
@@ -101,6 +102,13 @@ has response => (
     documentation => 'To store ping responses',
 );
 
+has statefile => (
+    isa           => 'Str',
+    is            => 'ro',
+    default       => $ENV{MUNIN_STATEFILE},
+    documentation => 'Where we store state between invocations',
+);
+
 sub START {
     my ($self) = @_;
 
@@ -149,6 +157,17 @@ event exit => sub {
     return;
 };
 
+sub STOP {
+    my ($self) = @_;
+
+    if (not $self->should_config and my $file = $self->statefile) {
+        my $res = $self->response;
+        my $ret = store($res, $file);
+        # use Data::Dumper;
+        # say Dumper { gonna_store => $res, ret => $ret, file => $file };
+    }
+}
+
 sub print_config {
     my ($self) = @_;
     my $title = $self->graph_title;
@@ -160,7 +179,7 @@ graph_vlabel seconds
 graph_category network
 graph_info Average ping times (over $times pings)
 GRAPH
-    for my $host ($self->hosts) {
+    for my $host ($self->sorted_hosts) {
         my $fieldname = $self->fieldname($host);
         print <<HOST;
 $fieldname.label $host
@@ -169,6 +188,25 @@ $fieldname.draw LINE2
 HOST
     }
 };
+
+sub sorted_hosts {
+    my ($self) = @_;
+
+    my @hosts = $self->hosts;
+    my $state = $self->statefile;
+
+    given ($self->statefile) {
+        when (-e and -r) {
+            my $last_res = retrieve($_);
+            my @sorted = sort { $last_res->{$b} <=> $last_res->{$a} } keys %$last_res;
+            if ($last_res and @hosts == @sorted) {
+                return @sorted;
+            }
+        }
+    }
+
+    return @hosts;
+}
 
 event print_host => sub {
     my ($self, $context, $time) = @_;
