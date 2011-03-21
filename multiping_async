@@ -1,9 +1,10 @@
-#!/usr/bin/env perl
+#!/home/v-perlbrew/perl5/perlbrew/bin/perl
 package Munin::Plugin::Multiping::Async;
 use 5.10.0;
 use MooseX::POE;
 use MooseX::POE::SweetArgs qw(event);
 use POE::Quickie;
+use lib '/usr/share/perl5';
 use Munin::Plugin;
 use Storable;
 use Digest;
